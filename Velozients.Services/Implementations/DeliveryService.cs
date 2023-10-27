@@ -58,13 +58,10 @@ namespace Velozients.Services.Implementations
             PackageStrategyContext lightestFirstBottomUpStrategy = new PackageStrategyContext(new LightestFirstBottomUpStrategy(this.Drones, this.Packages.OrderBy(x => x.PackageWeight).ToList()));
             PackageStrategyContext lightestFirstTopDownStrategy = new PackageStrategyContext(new LightestFirstTopDownStrategy(this.Drones, this.Packages.OrderBy(x => x.PackageWeight).ToList()));
 
-            Task<List<TripModel>> task1 = Task.Run(() => heaviestFirstBottomUpStrategy.CalculatePackagesByDrone());
-            Task<List<TripModel>> task2 = Task.Run(() => heaviestFirstTopDownStrategy.CalculatePackagesByDrone());
-            Task<List<TripModel>> task3 = Task.Run(() => lightestFirstBottomUpStrategy.CalculatePackagesByDrone());
-            Task<List<TripModel>> task4 = Task.Run(() => lightestFirstTopDownStrategy.CalculatePackagesByDrone());
-
             // Wait for all tasks to complete
-            var results = await Task.WhenAll(task1, task2, task3, task4);
+            var results = await Task.WhenAll(
+                heaviestFirstBottomUpStrategy.CalculatePackagesByDrone(), heaviestFirstTopDownStrategy.CalculatePackagesByDrone(), 
+                lightestFirstBottomUpStrategy.CalculatePackagesByDrone(), lightestFirstTopDownStrategy.CalculatePackagesByDrone());
 
             return results[GetBestStrategyIndex(results)];
         }
