@@ -45,11 +45,7 @@ namespace Velozients.Services.Implementations
 
         private async Task<List<TripModel>> GetTripsPriorityTryps()
         {
-
-            IPackageStrategy theBiggestBagStrategy = new TheBiggestBagStrategy(this.Drones, this.Packages);
-
-
-            PackageStrategyContext PackageContext = new PackageStrategyContext(theBiggestBagStrategy);
+            PackageStrategyContext PackageContext = new PackageStrategyContext(new TheBiggestBagStrategy(this.Drones, this.Packages));
             List<TripModel> result = await PackageContext.CalculatePackagesByDrone();
 
             return result;
@@ -67,13 +63,13 @@ namespace Velozients.Services.Implementations
             Task<List<TripModel>> task3 = Task.Run(() => lightestFirstBottomUpStrategy.CalculatePackagesByDrone());
             Task<List<TripModel>> task4 = Task.Run(() => lightestFirstTopDownStrategy.CalculatePackagesByDrone());
 
-            // Espera a que todos los tasks se completen
-            var resultados = await Task.WhenAll(task1, task2, task3, task4);
+            // Wait for all tasks to complete
+            var results = await Task.WhenAll(task1, task2, task3, task4);
 
-            return resultados[BestStrategyIndex(resultados)];
+            return results[GetBestStrategyIndex(results)];
         }
 
-        private int BestStrategyIndex(List<TripModel>[] resultados)
+        private int GetBestStrategyIndex(List<TripModel>[] resultados)
         {
             List<StrategyResult> strategyResults = new();
             foreach (var (strategy, index) in resultados.Select((value, i) => (value, i)))
@@ -107,43 +103,6 @@ namespace Velozients.Services.Implementations
             {
                 throw new Exception(ex.Message);
             }
-        }
-
-        private StringBuilder GenerateSummary(List<TripModel> result)
-        {
-            StringBuilder content = new StringBuilder();
-
-            foreach (DroneModel localDrone in Drones.OrderBy(r => r.DroneId))
-            {
-                var tipsSummaryByDron = result.Select(
-                    x => new {
-                        x.TripId,
-                        DronePackages = x.Drones
-                        .Where(z => z.DroneId == localDrone.DroneId && z.Packages.Count > 0)
-                        .Select(y => y.Packages)
-                    });
-
-                content.AppendLine($"[{localDrone.DroneName} - Capacity:{localDrone.MaxWeight}]");
-
-                foreach (var dronSummary in tipsSummaryByDron)
-                {
-
-                    if (!dronSummary.DronePackages.Any()) continue;
-
-                    content.AppendLine($"Trip #{dronSummary.TripId}");
-                    string packagesSummary = string.Empty;
-                    foreach (var package in dronSummary.DronePackages?.FirstOrDefault())
-                    {
-                        packagesSummary += $"[{package.PackageName}: {package.PackageWeight}], ";
-                    }
-
-                    content.AppendLine(packagesSummary.Substring(0, packagesSummary.Length - 2));
-                }
-
-                content.AppendLine("");
-            }
-
-            return content;
         }
     }
 }
